@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"os/exec"
 )
 
@@ -9,7 +10,7 @@ import (
 //
 // always run in root directory as specified in config.go
 func gitCmd(cmd string, args ...string) *exec.Cmd {
-	argList := append([]string{"-C", root, cmd}, args...)
+	argList := append([]string{"-C", config.Root(), cmd}, args...)
 	return exec.Command("git", argList...)
 }
 
@@ -19,7 +20,20 @@ func gitCmd(cmd string, args ...string) *exec.Cmd {
 //
 // MAKE SURE TO CLOSE IT
 func gitCmdLog() (*os.File, error) {
-	return os.OpenFile(gitCmdLogFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	log := config.GitCmdLog()
+	if _, err := os.Stat(log); os.IsNotExist(err) {
+		err := os.MkdirAll(filepath.Dir(log), 0700)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return os.OpenFile(config.GitCmdLog(), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+}
+
+func createGitIgnore() error {
+	contents := []byte(config.GitCmdLog())
+	return os.WriteFile(config.Path(".gitignore"), contents, 0660)
 }
 
 func runGit(cmd string, args ...string) error {

@@ -19,7 +19,7 @@ func getEditor() string {
 }
 
 func runEditor(name string, fName string) error {
-	p := filepath.Join(root, fName)
+	p := config.Path(fName)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		err := os.MkdirAll(filepath.Dir(p), 0700)
 		if err != nil {
@@ -74,7 +74,7 @@ func main() {
 	}
 	switch os.Args[1] {
 	case "ls":
-		list(root, 0)
+		list(config.Root(), 0)
 	default:
 		fName := os.Args[1]
 		runEditor(ed, fName)
