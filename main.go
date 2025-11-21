@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-const root = "test"
 
 func getEditor() string {
 	ed := os.Getenv("EDITOR")
