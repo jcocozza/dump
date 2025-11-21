@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
-	"path/filepath"
 	"os/exec"
+	"path/filepath"
 )
 
 // generate a git command
@@ -32,7 +33,8 @@ func gitCmdLog() (*os.File, error) {
 }
 
 func createGitIgnore() error {
-	contents := []byte(config.GitCmdLog())
+	s := fmt.Sprintf("%s\n%s", config.gitCmdLog, ".gitignore")
+	contents := []byte(s)
 	return os.WriteFile(config.Path(".gitignore"), contents, 0660)
 }
 
@@ -61,6 +63,10 @@ func init() {
 	in := insideGit()
 	if !in {
 		err := runGit("init")
+		if err != nil {
+			panic(err)
+		}
+		err = createGitIgnore()
 		if err != nil {
 			panic(err)
 		}

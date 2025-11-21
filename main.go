@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-
 func getEditor() string {
 	ed := os.Getenv("EDITOR")
 	if ed == "" {
@@ -43,20 +42,26 @@ func emptyName() string {
 	return fmt.Sprintf("%s-%s", "dump", s)
 }
 
+// ignore hidden files
+func shouldIgnore(name string) bool {
+	return name[0] == '.'
+}
+
 func list(dir string, depth int) error {
 	items, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
-
 	for _, item := range items {
 		idnt := strings.Repeat("\t", depth)
+		if shouldIgnore(item.Name()) {
+			continue
+		}
 		if item.IsDir() {
 			fmt.Fprintf(os.Stdout, "%s%s/\n", idnt, item.Name())
 			list(filepath.Join(dir, item.Name()), depth+1)
 			continue
 		}
-
 		info, err := item.Info()
 		if err != nil {
 			return err
@@ -78,5 +83,8 @@ func main() {
 	default:
 		fName := os.Args[1]
 		runEditor(ed, fName)
+		runGit("add", fName)
+		msg := fmt.Sprintf("file: %s", fName)
+		runGit("commit", "-m", msg)
 	}
 }

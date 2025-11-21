@@ -3,7 +3,7 @@ package main
 import "path/filepath"
 
 type DumpConfig struct {
-	root string
+	root      string
 	gitCmdLog string
 }
 
@@ -19,8 +19,7 @@ func (c DumpConfig) GitCmdLog() string {
 	return filepath.Join(c.root, c.gitCmdLog)
 }
 
-
 var config = DumpConfig{
-	root: "/tmp/test",
+	root:      "/tmp/test",
 	gitCmdLog: ".dump_gitcmd.log",
 }
