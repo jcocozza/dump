@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"flag"
 )
 
 func getEditor() string {
@@ -47,7 +48,7 @@ func shouldIgnore(name string) bool {
 	return name[0] == '.'
 }
 
-func list(dir string, depth int) error {
+func list(dir string, depth int, pretty bool) error {
 	items, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -58,15 +59,21 @@ func list(dir string, depth int) error {
 			continue
 		}
 		if item.IsDir() {
-			fmt.Fprintf(os.Stdout, "%s%s/\n", idnt, item.Name())
-			list(filepath.Join(dir, item.Name()), depth+1)
+			if pretty {
+				fmt.Fprintf(os.Stdout, "%s%s/\n", idnt, item.Name())
+			}
+			list(filepath.Join(dir, item.Name()), depth+1, pretty)
 			continue
 		}
 		info, err := item.Info()
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stdout, "%s%s - %s\n", idnt, item.Name(), info.ModTime().Format("2006-01-02"))
+		if pretty {
+			fmt.Fprintf(os.Stdout, "%s%s - %s\n", idnt, item.Name(), info.ModTime().Format("2006-01-02"))
+		} else {
+			fmt.Fprintf(os.Stdout, "%s\n", filepath.Join(dir, item.Name()))
+		}
 	}
 	return nil
 }
@@ -77,10 +84,19 @@ func main() {
 		runEditor(ed, emptyName())
 		return
 	}
+
+
 	switch os.Args[1] {
 	case "ls":
-		list(config.Root(), 0)
+		lsCmd := flag.NewFlagSet("ls", flag.ExitOnError)
+		lsSimple := lsCmd.Bool("l", false, "simple print the list")
+		lsCmd.Parse(os.Args[2:])
+		list(config.Root(), 0, !*lsSimple)
 	default:
+		/* TODO: flags to add:
+		 1. -e editor flag
+		 2. -m commit message (maybe??)
+		*/
 		fName := os.Args[1]
 		runEditor(ed, fName)
 		runGit("add", fName)
