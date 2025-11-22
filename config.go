@@ -2,9 +2,26 @@ package main
 
 import "path/filepath"
 
+type peer struct {
+	// what to call peer in git
+	name string
+	// user to sync with
+	user string
+	// address of server
+	addr string
+	// location of remote repo
+	path string
+	// branch to sync with
+	branch string
+}
+
+var peers = []peer{
+}
+
 type DumpConfig struct {
 	root      string
 	gitCmdLog string
+	peers 	  []peer
 }
 
 func (c DumpConfig) Path(p string) string {
@@ -22,4 +39,5 @@ func (c DumpConfig) GitCmdLog() string {
 var config = DumpConfig{
 	root:      "/tmp/test",
 	gitCmdLog: ".dump_gitcmd.log",
+	peers: peers,
 }

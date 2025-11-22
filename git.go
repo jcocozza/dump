@@ -51,6 +51,18 @@ func runGit(cmd string, args ...string) error {
 	return c.Run()
 }
 
+func addGitRemote(p peer) error {
+	return runGit("remote", "add", p.name, fmt.Sprintf("%s@%s:%s", p.user, p.addr, p.path))
+}
+
+func gitPeers() error {
+	cmd := gitCmd("remote", "-v")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func insideGit() bool {
 	cmd := gitCmd("rev-parse", "--is-inside-work-tree")
 	cmd.Stdin = os.Stdin
@@ -59,6 +71,10 @@ func insideGit() bool {
 	return cmd.Run() == nil
 }
 
+// ensure git is all set up
+//
+// at some point this can be optimized so that some parts of it don't need to be run each time
+// e.g. no need to re-add peers each time
 func init() {
 	in := insideGit()
 	if !in {
@@ -71,4 +87,7 @@ func init() {
 			panic(err)
 		}
 	}
+	for _, peer := range config.peers {
+		addGitRemote(peer) // we don't care if it already exists
+	}	
 }

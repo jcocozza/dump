@@ -78,6 +78,25 @@ func list(dir string, depth int, pretty bool) error {
 	return nil
 }
 
+func syncPeer(p peer) {
+	err := runGit("fetch", p.name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[warning] unable to sync %s. skipping...\n", p.name)
+		return
+	}
+	err = runGit("pull", "--rebase", p.name, p.branch)	
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "sync failed for %s. please resolve and resync\n", p.name)
+		os.Exit(1)
+	}
+}
+
+func sync() {
+	for _, p := range config.peers {
+		syncPeer(p)
+	}
+}
+
 func main() {
 	ed := getEditor()
 	if len(os.Args) < 2 {
@@ -92,6 +111,13 @@ func main() {
 		lsSimple := lsCmd.Bool("l", false, "simple print the list")
 		lsCmd.Parse(os.Args[2:])
 		list(config.Root(), 0, !*lsSimple)
+	case "peers":
+		gitPeers()
+	case "sync":
+		syncCmd := flag.NewFlagSet("sync", flag.ExitOnError)
+		//syncMerge := syncCmd.Bool("m", false, "do a merge instead of rebase")
+		syncCmd.Parse(os.Args[2:])
+		sync()
 	default:
 		/* TODO: flags to add:
 		 1. -e editor flag
