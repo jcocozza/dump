@@ -48,11 +48,17 @@ func shouldIgnore(name string) bool {
 	return name[0] == '.'
 }
 
-func list(dir string, depth int, pretty bool) error {
+func list(dir string, depth int, pretty bool, fullPath bool) error {
 	items, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
+
+	if fullPath && pretty && depth == 0 {
+		fmt.Fprintf(os.Stdout, "%s\n", dir)
+		depth += 1
+	}
+
 	for _, item := range items {
 		idnt := strings.Repeat("\t", depth)
 		if shouldIgnore(item.Name()) {
@@ -62,7 +68,7 @@ func list(dir string, depth int, pretty bool) error {
 			if pretty {
 				fmt.Fprintf(os.Stdout, "%s%s/\n", idnt, item.Name())
 			}
-			list(filepath.Join(dir, item.Name()), depth+1, pretty)
+			list(filepath.Join(dir, item.Name()), depth+1, pretty, fullPath)
 			continue
 		}
 		info, err := item.Info()
@@ -72,7 +78,11 @@ func list(dir string, depth int, pretty bool) error {
 		if pretty {
 			fmt.Fprintf(os.Stdout, "%s%s - %s\n", idnt, item.Name(), info.ModTime().Format("2006-01-02"))
 		} else {
-			fmt.Fprintf(os.Stdout, "%s\n", filepath.Join(dir, item.Name()))
+			if fullPath {
+				fmt.Fprintf(os.Stdout, "%s\n", filepath.Join(dir, item.Name()))
+			} else {
+				fmt.Fprintf(os.Stdout, "%s\n", item.Name())
+			}
 		}
 	}
 	return nil
@@ -97,10 +107,17 @@ func sync() {
 	}
 }
 
-func main() {
+func doDump(fName string) {
 	ed := getEditor()
+	runEditor(ed, fName)
+	runGit("add", fName)
+	msg := fmt.Sprintf("file: %s", fName)
+	runGit("commit", "-m", msg)
+}
+
+func main() {
 	if len(os.Args) < 2 {
-		runEditor(ed, emptyName())
+		doDump(emptyName())
 		return
 	}
 
@@ -109,8 +126,9 @@ func main() {
 	case "ls":
 		lsCmd := flag.NewFlagSet("ls", flag.ExitOnError)
 		lsSimple := lsCmd.Bool("l", false, "simple print the list")
+		lsFull := lsCmd.Bool("f", false, "full path")
 		lsCmd.Parse(os.Args[2:])
-		list(config.Root(), 0, !*lsSimple)
+		list(config.Root(), 0, !*lsSimple, *lsFull)
 	case "peers":
 		gitPeers()
 	case "sync":
@@ -124,9 +142,6 @@ func main() {
 		 2. -m commit message (maybe??)
 		*/
 		fName := os.Args[1]
-		runEditor(ed, fName)
-		runGit("add", fName)
-		msg := fmt.Sprintf("file: %s", fName)
-		runGit("commit", "-m", msg)
+		doDump(fName)
 	}
 }
