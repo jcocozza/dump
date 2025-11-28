@@ -131,8 +131,8 @@ func main() {
 		list(config.Root(), 0, !*lsSimple, *lsFull)
 	case "peers":
 		gitPeers()
-	case "sync":
-		syncCmd := flag.NewFlagSet("sync", flag.ExitOnError)
+	case "pull":
+		syncCmd := flag.NewFlagSet("pull", flag.ExitOnError)
 		//syncMerge := syncCmd.Bool("m", false, "do a merge instead of rebase")
 		syncCmd.Parse(os.Args[2:])
 		sync()
