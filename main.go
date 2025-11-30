@@ -46,6 +46,12 @@ func list(dir string, depth int, pretty bool, fullPath bool) error {
 		return err
 	}
 
+	// this is just a stupid header
+	// may remove it
+	if !fullPath && pretty && depth == 0 {
+		fmt.Fprintln(os.Stdout, "name last_modified")
+	}
+
 	if fullPath && pretty && depth == 0 {
 		fmt.Fprintf(os.Stdout, "%s\n", dir)
 		depth += 1
@@ -68,7 +74,7 @@ func list(dir string, depth int, pretty bool, fullPath bool) error {
 			return err
 		}
 		if pretty {
-			fmt.Fprintf(os.Stdout, "%s%s - %s\n", idnt, item.Name(), info.ModTime().Format("2006-01-02"))
+			fmt.Fprintf(os.Stdout, "%s%s %s\n", idnt, item.Name(), info.ModTime().Format("2006-01-02"))
 		} else {
 			if fullPath {
 				fmt.Fprintf(os.Stdout, "%s\n", filepath.Join(dir, item.Name()))
