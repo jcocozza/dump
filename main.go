@@ -1,25 +1,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
-	"flag"
 )
 
-func getEditor() string {
-	ed := os.Getenv("EDITOR")
-	if ed == "" {
-		ed = "vim"
-	}
-	return ed
-}
-
 func runEditor(name string, fName string) error {
-	p := config.Path(fName)
+	p := DumpPath(fName)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		err := os.MkdirAll(filepath.Dir(p), 0700)
 		if err != nil {
@@ -88,60 +80,81 @@ func list(dir string, depth int, pretty bool, fullPath bool) error {
 	return nil
 }
 
-func syncPeer(p peer) {
-	err := runGit("fetch", p.name)
+func pullPeer(name string, branch string) {
+	err := runGit("fetch", name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[warning] unable to sync %s. skipping...\n", p.name)
+		fmt.Fprintf(os.Stderr, "[warning] unable to pull %s. skipping...\n", name)
 		return
 	}
-	err = runGit("pull", "--rebase", p.name, p.branch)	
+	err = runGit("pull", "--rebase", name, branch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "sync failed for %s. please resolve and resync\n", p.name)
+		fmt.Fprintf(os.Stderr, "pull failed for %s. please resolve and repull\n", name)
 		os.Exit(1)
 	}
 }
 
-func sync() {
-	for _, p := range config.peers {
-		syncPeer(p)
+func pull() {
+	for _, p := range DumpPeers {
+		pullPeer(p.Name, p.Branch)
 	}
 }
 
 func doDump(fName string) {
-	ed := getEditor()
+	ed := GetEditor()
 	runEditor(ed, fName)
 	runGit("add", fName)
 	msg := fmt.Sprintf("file: %s", fName)
 	runGit("commit", "-m", msg)
 }
 
+func usage() {
+	fmt.Fprintln(os.Stderr, "usage:")
+	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [OPT FILENAME]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [COMMAND] [OPTIONS]\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "options:")
+	flag.PrintDefaults()
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "commands:")
+	fmt.Fprintf(os.Stderr, "  %s list files\n", "ls")
+	fmt.Fprintf(os.Stderr, "  %s list peers\n", "peers")
+	fmt.Fprintf(os.Stderr, "  %s pull from peers\n", "pull")
+}
+
 func main() {
-	if len(os.Args) < 2 {
+	flag.Usage = usage
+	flag.StringVar(&DumpRoot, "r", DumpRoot, "root of dump file")
+	flag.StringVar(&DumpEditor, "e", DumpEditor, "editor to use (use $EDITOR when set to ENV)")
+	flag.Parse()
+
+	// args will contain all non-parsed flags
+	// so long as we keep flags distinct we don't have to think too hard about parsing
+	args := flag.Args()
+	if len(args) == 0 {
 		doDump(emptyName())
 		return
 	}
 
-
-	switch os.Args[1] {
+	switch args[0] {
 	case "ls":
 		lsCmd := flag.NewFlagSet("ls", flag.ExitOnError)
 		lsSimple := lsCmd.Bool("l", false, "simple print the list")
 		lsFull := lsCmd.Bool("f", false, "full path")
-		lsCmd.Parse(os.Args[2:])
-		list(config.Root(), 0, !*lsSimple, *lsFull)
+		lsCmd.Parse(args[1:])
+		list(DumpRoot, 0, !*lsSimple, *lsFull)
 	case "peers":
 		gitPeers()
 	case "pull":
-		syncCmd := flag.NewFlagSet("pull", flag.ExitOnError)
-		//syncMerge := syncCmd.Bool("m", false, "do a merge instead of rebase")
-		syncCmd.Parse(os.Args[2:])
-		sync()
+		pullCmd := flag.NewFlagSet("pull", flag.ExitOnError)
+		//pullMerge := pullCmd.Bool("m", false, "do a merge instead of rebase")
+		pullCmd.Parse(args[1:])
+		pull()
 	default:
 		/* TODO: flags to add:
-		 1. -e editor flag
-		 2. -m commit message (maybe??)
+		1. -e editor flag
+		2. -m commit message (maybe??)
 		*/
-		fName := os.Args[1]
+		fName := args[0]
 		doDump(fName)
 	}
 }

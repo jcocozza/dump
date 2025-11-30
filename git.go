@@ -4,42 +4,24 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 // generate a git command
 //
 // always run in root directory as specified in config.go
 func gitCmd(cmd string, args ...string) *exec.Cmd {
-	argList := append([]string{"-C", config.Root(), cmd}, args...)
+	argList := append([]string{"-C", DumpRoot, cmd}, args...)
 	return exec.Command("git", argList...)
 }
 
-// return a log file to write git stuff to
-//
-// specified in config.go
-//
-// MAKE SURE TO CLOSE IT
-func gitCmdLog() (*os.File, error) {
-	log := config.GitCmdLog()
-	if _, err := os.Stat(log); os.IsNotExist(err) {
-		err := os.MkdirAll(filepath.Dir(log), 0700)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return os.OpenFile(config.GitCmdLog(), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-}
-
 func createGitIgnore() error {
-	s := fmt.Sprintf("%s\n%s", config.gitCmdLog, ".gitignore")
+	s := fmt.Sprintf("%s\n%s", DumpLog, ".gitignore")
 	contents := []byte(s)
-	return os.WriteFile(config.Path(".gitignore"), contents, 0660)
+	return os.WriteFile(DumpPath(".gitignore"), contents, 0660)
 }
 
 func runGit(cmd string, args ...string) error {
-	log, err := gitCmdLog()
+	log, err := DumpLogFile()
 	if err != nil {
 		return err
 	}
@@ -51,8 +33,8 @@ func runGit(cmd string, args ...string) error {
 	return c.Run()
 }
 
-func addGitRemote(p peer) error {
-	return runGit("remote", "add", p.name, fmt.Sprintf("%s@%s:%s", p.user, p.addr, p.path))
+func addGitRemote(name string, user string, addr string, path string) error {
+	return runGit("remote", "add", name, fmt.Sprintf("%s@%s:%s", user, addr, path))
 }
 
 func gitPeers() error {
@@ -87,7 +69,7 @@ func init() {
 			panic(err)
 		}
 	}
-	for _, peer := range config.peers {
-		addGitRemote(peer) // we don't care if it already exists
-	}	
+	for _, peer := range DumpPeers {
+		addGitRemote(peer.Name, peer.User, peer.Addr, peer.Path) // we don't care if it already exists
+	}
 }
