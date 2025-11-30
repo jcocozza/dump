@@ -2,6 +2,10 @@ package main
 
 import "path/filepath"
 
+// TODO: need a make method
+// so that we can have sensible defaults
+// path = ".local/share/dump"
+// brach = "master"
 type peer struct {
 	// what to call peer in git
 	name string
@@ -15,6 +19,7 @@ type peer struct {
 	branch string
 }
 
+// TODO: need sensible defaults for these
 type DumpConfig struct {
 	root      string
 	gitCmdLog string
