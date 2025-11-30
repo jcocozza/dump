@@ -157,8 +157,7 @@ func main() {
 		pull()
 	default:
 		/* TODO: flags to add:
-		1. -e editor flag
-		2. -m commit message (maybe??)
+		1. -m commit message (maybe??)
 		*/
 		fName := args[0]
 		doDump(fName)
