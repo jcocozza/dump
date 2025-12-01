@@ -3,6 +3,11 @@
 Dump is a CLI tool that makes it easy to keep track of, create and share files across machines that you trust.
 The idea is peer-to-peer file sync with version control.
 
+It assumes you know about git. You will need to handle merge conflicts yourself.
+By default, it runs a rebase when syncing.
+The intended use case of dump should rarely produce merge conflicts.
+If you are getting lots of conflicts, this tool is probably not for you.
+
 ## What this thing does
 
 I have a set of files that I like all of computers to have.

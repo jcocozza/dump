@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -113,18 +114,80 @@ func doDump(fName string) {
 	runGit("commit", "-m", msg)
 }
 
+// returns path added in dump
+func addFile(path string, move bool, force bool, prefix string) (string, error) {
+	old, err := os.Open(path)
+	if err != nil { return "", err }
+	defer old.Close()
+
+	name := filepath.Base(path)
+	newPath := DumpPath(filepath.Join(prefix, name))
+
+	err = os.MkdirAll(filepath.Dir(newPath), 0700)	
+	if err != nil { return "", err }
+	
+	flags := os.O_RDWR|os.O_CREATE
+
+	if !force {
+		flags |= os.O_EXCL
+	}
+
+	f, err := os.OpenFile(newPath, flags, 0660)
+	if err != nil { return "", err }
+	defer f.Close()
+
+	_, err = io.Copy(f, old)
+	if err != nil {
+		return "", err
+	}
+
+	// we don't actually "move"
+	// instead, we just remove the file at the old location
+	if move {
+		err := os.Remove(path)
+		if err != nil { return "", err }
+	}
+	return newPath, nil
+}
+
+func add(files []string, move bool, force bool, prefix string) {
+	newPaths := make([]string, len(files))
+	for i, f := range files {
+		newPath, err := addFile(f, move, force, prefix)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[error] failed to add file %s: %s\n", f, err.Error())
+			os.Exit(1)
+		}
+		newPaths[i] = newPath
+	}
+
+	
+	names := make([]string, len(files))
+	for i, f := range newPaths {
+		runGit("add", f)
+		names[i] = filepath.Base(f)
+	}
+	fList := strings.Join(names, ", ")
+	msg := fmt.Sprintf("files: %s", fList)
+	runGit("commit", "-m", msg)
+}
+
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [OPT FILENAME]\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [COMMAND] [OPTIONS]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [COMMAND] [OPTIONS] [ARGS]\n", os.Args[0])
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "options:")
 	flag.PrintDefaults()
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "commands:")
-	fmt.Fprintf(os.Stderr, "  %s list files\n", "ls")
-	fmt.Fprintf(os.Stderr, "  %s list peers\n", "peers")
-	fmt.Fprintf(os.Stderr, "  %s pull from peers\n", "pull")
+	fmt.Fprintln(os.Stderr, "  ls    list files")
+	fmt.Fprintln(os.Stderr, "  peers list peers")
+	fmt.Fprintln(os.Stderr, "  pull  pull from peers")
+	fmt.Fprintf(os.Stderr,  "  root  print root (use `cd $(%s root)`)\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "  add   add existing files to dump")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintf(os.Stderr, "%s <command> -h for more info on a command\n", os.Args[0])
 }
 
 func main() {
@@ -149,12 +212,25 @@ func main() {
 		lsCmd.Parse(args[1:])
 		list(DumpRoot, 0, !*lsSimple, *lsFull)
 	case "peers":
+		peersCmd := flag.NewFlagSet("peers", flag.ExitOnError)
+		peersCmd.Parse(args[1:])
 		gitPeers()
 	case "pull":
 		pullCmd := flag.NewFlagSet("pull", flag.ExitOnError)
-		//pullMerge := pullCmd.Bool("m", false, "do a merge instead of rebase")
 		pullCmd.Parse(args[1:])
 		pull()
+	case "root":
+		rootCmd := flag.NewFlagSet("root", flag.ExitOnError)
+		rootCmd.Parse(args[1:])
+		fmt.Fprintln(os.Stdout, DumpRoot)
+	case "add":
+		addCmd := flag.NewFlagSet("add", flag.ExitOnError)
+		mv := addCmd.Bool("mv", false, "move the files (instead of copy)")
+		p := addCmd.String("p", "", "set a prefix to nest the files (e.g. foo/bar)")
+		force := addCmd.Bool("f", false, "force - will overwrite contents")
+		addCmd.Parse(args[1:])
+		files := addCmd.Args()
+		add(files, *mv, *force, *p)
 	default:
 		/* TODO: flags to add:
 		1. -m commit message (maybe??)
