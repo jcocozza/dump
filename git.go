@@ -57,6 +57,10 @@ func insideGit() bool {
 //
 // at some point this can be optimized so that some parts of it don't need to be run each time
 // e.g. no need to re-add peers each time
+//
+// TODO: the available peers needs to be in line with the config
+// if a peer is removed from the config that it shouldn't still be in the repo
+// maybe we need to do something like `git remote remove *` each init and then re-add the peers
 func init() {
 	in := insideGit()
 	if !in {
