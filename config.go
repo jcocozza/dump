@@ -22,18 +22,4 @@ var DumpPeers = []struct{
 	// branch to sync with
 	Branch string	
 }{
-	{
-		Name: "ted",
-		User: "ted",
-		Addr: "127.0.0.1",
-		Path: "/tmp/test-test",
-		Branch: "master",
-	},
-	//{
-	//	Name: "water",
-	//	User: "water",
-	//	Addr: "exuberant-spigot",
-	//	Path: "/tmp/test",
-	//	Branch: "master",
-	//},
 }
