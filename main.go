@@ -173,9 +173,10 @@ func add(files []string, move bool, force bool, prefix string) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [OPT FILENAME]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "%s [OPTIONS] [COMMAND] [OPTIONS] [ARGS]\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "a cli tool for keeping files versioned and synced")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "options:")
 	flag.PrintDefaults()
@@ -228,6 +229,15 @@ func main() {
 		mv := addCmd.Bool("mv", false, "move the files (instead of copy)")
 		p := addCmd.String("p", "", "set a prefix to nest the files (e.g. foo/bar)")
 		force := addCmd.Bool("f", false, "force - will overwrite contents")
+		addCmd.Usage = func() {
+			//fmt.Fprintln(os.Stderr, "usage:")
+			fmt.Fprintf(os.Stderr, "%s add [OPTIONS] [FILES...]\n", os.Args[0])
+			fmt.Fprintln(os.Stderr, "copy files into the dump directory")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "options:")
+			addCmd.PrintDefaults()
+			fmt.Fprintln(os.Stderr, "")
+		}
 		addCmd.Parse(args[1:])
 		files := addCmd.Args()
 		add(files, *mv, *force, *p)
